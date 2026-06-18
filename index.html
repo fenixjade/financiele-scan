@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Financiële Fitheidsscan — prototype</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500&family=Jost:wght@300;400;500;600&display=swap');
+
+  :root{
+    --cream:#FAF6EF; --card:#FFFFFF; --ink:#2E2823; --soft:#6B6259;
+    --burgundy:#7B2233; --line:#E7DFD3;
+    --green:#2E7D55; --orange:#C9821E; --red:#B83A3A;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{font-family:'Jost',system-ui,sans-serif;background:var(--cream);color:var(--ink);font-weight:300;line-height:1.6;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;}
+  h1,h2,h3,.score-num{font-family:'Playfair Display',serif;}
+
+  .wrap{width:100%;max-width:560px;}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:36px 32px;box-shadow:0 12px 40px rgba(46,40,35,.06);}
+
+  /* progress */
+  .progress{height:5px;background:var(--line);border-radius:3px;margin-bottom:28px;overflow:hidden;}
+  .progress-fill{height:100%;background:var(--burgundy);border-radius:3px;transition:width .3s ease;width:0;}
+
+  .kicker{font-size:11px;text-transform:uppercase;letter-spacing:3px;color:var(--burgundy);margin-bottom:12px;}
+  .q-text{font-size:23px;line-height:1.3;margin-bottom:24px;font-weight:600;}
+  h1.q-text{font-size:30px;}
+  .lead{font-size:16px;color:var(--soft);margin-bottom:28px;}
+
+  .opt{display:block;width:100%;text-align:left;background:var(--cream);border:1.5px solid var(--line);border-radius:12px;padding:16px 18px;margin-bottom:10px;font-family:inherit;font-size:15px;color:var(--ink);cursor:pointer;transition:all .15s ease;}
+  .opt:hover{border-color:var(--burgundy);transform:translateY(-1px);}
+
+  .btn{display:inline-block;background:var(--burgundy);color:#fff;border:none;border-radius:30px;padding:15px 32px;font-family:inherit;font-size:16px;font-weight:500;cursor:pointer;text-decoration:none;transition:opacity .15s;}
+  .btn:hover{opacity:.9;}
+  .btn-ghost{background:transparent;color:var(--burgundy);border:1.5px solid var(--burgundy);}
+
+  .back{background:none;border:none;color:var(--soft);font-family:inherit;font-size:13px;cursor:pointer;margin-top:18px;}
+  .back:hover{color:var(--ink);}
+
+  /* result */
+  .score-ring{text-align:center;margin-bottom:8px;}
+  .score-num{font-size:64px;font-weight:700;color:var(--burgundy);line-height:1;}
+  .score-num span{font-size:24px;color:var(--soft);}
+  .band{text-align:center;font-size:24px;font-weight:600;margin-bottom:6px;}
+  .band-text{text-align:center;color:var(--soft);font-size:15px;margin-bottom:24px;}
+
+  .number-box{background:var(--cream);border-radius:14px;padding:20px;margin-bottom:24px;text-align:center;}
+  .number-box .big{font-family:'Playfair Display',serif;font-size:30px;color:var(--burgundy);font-weight:700;}
+  .number-box .lbl{font-size:13px;color:var(--soft);margin-top:4px;}
+  .number-box .note{font-size:12px;color:var(--soft);margin-top:10px;font-style:italic;}
+
+  .dims{margin-bottom:24px;}
+  .dim{display:flex;gap:12px;padding:12px 0;border-bottom:1px solid var(--line);}
+  .dim:last-child{border-bottom:none;}
+  .dot{width:11px;height:11px;border-radius:50%;flex-shrink:0;margin-top:6px;}
+  .dot.green{background:var(--green);} .dot.orange{background:var(--orange);} .dot.red{background:var(--red);}
+  .dim .d-name{font-weight:500;font-size:14px;}
+  .dim .d-tip{font-size:13px;color:var(--soft);}
+
+  .gate{background:var(--cream);border-radius:14px;padding:24px;margin-top:8px;}
+  .gate h3{font-size:18px;margin-bottom:6px;}
+  .gate p{font-size:14px;color:var(--soft);margin-bottom:16px;}
+  .gate input{width:100%;border:1.5px solid var(--line);border-radius:10px;padding:13px 14px;font-family:inherit;font-size:15px;margin-bottom:10px;background:#fff;}
+  .gate .optin{font-size:12px;color:var(--soft);display:flex;gap:8px;margin:6px 0 16px;align-items:flex-start;}
+
+  .cta-box{text-align:center;}
+  .cta-box h2{font-size:24px;margin-bottom:10px;}
+  .cta-box p{color:var(--soft);margin-bottom:20px;}
+  .checkmark{font-size:40px;margin-bottom:8px;}
+
+  .hidden{display:none;}
+  .footer-note{text-align:center;font-size:11px;color:var(--soft);margin-top:18px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="card" id="card"></div>
+  <p class="footer-note">Prototype — Financiële Fitheidsscan · branding phuongdo.nl</p>
+</div>
+
+<script>
+const QUESTIONS = [
+  {key:'belastingbuffer', dim:true, vraag:'Hoeveel zet je opzij voor de Belastingdienst?',
+   opties:[{t:'Een vast % op een aparte rekening, ik weet precies hoeveel',s:100},
+           {t:'Ik zet wel wat opzij, maar zonder systeem',s:50},
+           {t:'Niets, ik schrik elke keer als de aanslag komt',s:0}]},
+  {key:'overzicht', dim:true, vraag:'Hoe actueel is je administratie?',
+   opties:[{t:'Bijgewerkt, ik weet vandaag waar ik sta',s:100},
+           {t:'Ik loop een paar weken achter',s:50},
+           {t:'Eén keer per jaar voor de aangifte (schoenendoos)',s:0}]},
+  {key:'buffer', dim:true, vraag:'Als er 2 maanden niks binnenkomt, wat dan?',
+   opties:[{t:'Geen probleem, ik heb een buffer van 3+ maanden',s:100},
+           {t:'Het wordt krap',s:50},
+           {t:'Dan heb ik direct een probleem',s:0}]},
+  {key:'tarief', dim:true, vraag:'Weet je wat je netto overhoudt per gewerkt uur?',
+   opties:[{t:'Ja, en ik stuur erop',s:100},
+           {t:'Ongeveer, ik heb een idee',s:50},
+           {t:'Geen idee, ik reken een tarief en hoop dat het klopt',s:0}]},
+  {key:'scheiding', dim:true, vraag:'Hoe gescheiden zijn je privé- en zakelijke financiën?',
+   opties:[{t:'Volledig: aparte rekening, ik betaal mezelf bewust uit',s:100},
+           {t:'Deels: aparte rekening maar het loopt door elkaar',s:50},
+           {t:'Eén rekening voor alles',s:0}]},
+  {key:'toekomst', dim:true, vraag:'Leg je iets opzij voor later (pensioen / arbeidsongeschiktheid)?',
+   opties:[{t:'Ja, structureel',s:100},
+           {t:'Een beetje / ik denk erover',s:50},
+           {t:'Nee',s:0}]},
+  {key:'omzet', dim:false, vraag:'Wat is je gemiddelde omzet per maand?',
+   opties:[{t:'Minder dan € 2.000',v:'<2k',omzet:1500},
+           {t:'€ 2.000 – € 5.000',v:'2-5k',omzet:3500},
+           {t:'€ 5.000 – € 10.000',v:'5-10k',omzet:7500},
+           {t:'Meer dan € 10.000',v:'>10k',omzet:12000}]},
+  {key:'boekhouding', dim:false, vraag:'Hoe regel je je boekhouding nu?',
+   opties:[{t:'Zelf, handmatig (Excel / schoenendoos)',v:'handmatig'},
+           {t:'Met een boekhoudpakket',v:'pakket'},
+           {t:'Via een boekhouder / accountant',v:'boekhouder'},
+           {t:'Eigenlijk niet echt',v:'niet'}]},
+];
+
+const FEEDBACK = {
+  belastingbuffer:{label:'Belastingbuffer',
+    0:'Zet vanaf nu een vast percentage van elke factuur op een aparte rekening. Dan komt de aanslag nooit meer als een schok.',
+    50:'Je zet wat opzij, maar zonder systeem loop je risico. Maak er een vast percentage van, automatisch.',
+    100:'Sterk, je belastingbuffer is op orde.'},
+  overzicht:{label:'Overzicht',
+    0:'Eén keer per jaar in je administratie duiken is stuurloos varen. Met bijgewerkte cijfers weet je elke maand waar je staat.',
+    50:'Een paar weken achterlopen kost je overzicht. Wekelijks 10 minuten bijwerken scheelt enorm.',
+    100:'Top, je hebt actueel overzicht.'},
+  buffer:{label:'Buffer',
+    0:'Zonder buffer ben je kwetsbaar voor één tegenvaller. Werk toe naar 3 maanden vaste lasten.',
+    50:'Je hebt een begin. Bouw je buffer uit naar 3 maanden voor echte rust.',
+    100:'Goede buffer, dat geeft rust.'},
+  tarief:{label:'Tarief & marge',
+    0:'Weet je niet wat je netto per uur overhoudt, dan weet je niet of je tarief klopt. Reken het één keer goed door.',
+    50:'Je hebt een idee, maak het scherp: kosten + belasting + buffer = je echte minimumtarief.',
+    100:'Je stuurt op je marge, precies goed.'},
+  scheiding:{label:'Privé / zakelijk',
+    0:'Eén rekening voor alles maakt je cijfers onleesbaar. Een zakelijke rekening is zo geregeld.',
+    50:'Je hebt een aparte rekening, gebruik ’m consequent zodat privé en zakelijk niet door elkaar lopen.',
+    100:'Netjes gescheiden, dat houdt je cijfers helder.'},
+  toekomst:{label:'Toekomst',
+    0:'Als ZZP’er bouw je zelf je vangnet. Begin klein met pensioen of een AOV, juist nu.',
+    50:'Je denkt erover, mooi. Maak het concreet met een vast maandbedrag.',
+    100:'Goed bezig, je denkt aan later.'},
+};
+
+const state = {step:-1, answers:{}, dimScores:{}, omzet:null, btw:0, q1text:''};
+const card = document.getElementById('card');
+const eur = n => '€ ' + n.toLocaleString('nl-NL');
+
+function render(){
+  if(state.step === -1) return renderIntro();
+  if(state.step < QUESTIONS.length) return renderQuestion(state.step);
+  return renderResult();
+}
+
+function renderIntro(){
+  card.innerHTML = `
+    <div class="kicker">Gratis financiële check</div>
+    <h1 class="q-text">Hoe financieel fit is jouw bedrijf?</h1>
+    <p class="lead">6 vragen, 2 minuten. Je krijgt direct je score, een persoonlijk inzicht en 3 concrete stappen.</p>
+    <button class="btn" onclick="next()">Start de scan</button>`;
+}
+
+function renderQuestion(i){
+  const q = QUESTIONS[i];
+  const pct = (i/QUESTIONS.length)*100;
+  card.innerHTML = `
+    <div class="progress"><div class="progress-fill" style="width:${pct}%"></div></div>
+    <div class="kicker">Vraag ${i+1} van ${QUESTIONS.length}</div>
+    <div class="q-text">${q.vraag}</div>
+    <div id="opts"></div>
+    ${i>0?'<button class="back" onclick="back()">← terug</button>':''}`;
+  const opts = document.getElementById('opts');
+  q.opties.forEach((o,idx)=>{
+    const b = document.createElement('button');
+    b.className='opt'; b.textContent=o.t;
+    b.onclick=()=>choose(q,o);
+    opts.appendChild(b);
+  });
+}
+
+function choose(q,o){
+  if(q.dim){ state.dimScores[q.key]=o.s; if(q.key==='belastingbuffer') state.q1text=o.t; }
+  else { state.answers[q.key]=o.v; if(q.key==='omzet') state.omzet=o.omzet; }
+  next();
+}
+function next(){ state.step++; render(); }
+function back(){ state.step--; render(); }
+
+function band(score){
+  if(score<=40) return {t:'Financieel kwetsbaar', d:'Je zaak draait, maar je stuurt blind. Eén tegenvaller en het wordt spannend.'};
+  if(score<=70) return {t:'Op koers', d:'De basis staat. Er liggen kansen om meer rust en grip te krijgen.'};
+  return {t:'Financieel fit', d:'Sterk. Je hebt grip. Nu kun je sturen op groei.'};
+}
+function colorFor(s){ return s===100?'green':s===50?'orange':'red'; }
+
+function segment(score){
+  if(state.answers.omzet==='>10k') return 'gesprek';
+  if(score<=40 || ['handmatig','niet'].includes(state.answers.boekhouding)) return 'self-serve';
+  return 'midden';
+}
+
+function renderResult(){
+  const vals = Object.values(state.dimScores);
+  const score = Math.round(vals.reduce((a,b)=>a+b,0)/vals.length);
+  const b = band(score);
+  state.btw = Math.round(state.omzet*0.21);
+
+  let dimsHtml='';
+  QUESTIONS.filter(q=>q.dim).forEach(q=>{
+    const s = state.dimScores[q.key];
+    dimsHtml += `<div class="dim"><div class="dot ${colorFor(s)}"></div>
+      <div><div class="d-name">${FEEDBACK[q.key].label}</div>
+      <div class="d-tip">${FEEDBACK[q.key][s]}</div></div></div>`;
+  });
+
+  card.innerHTML = `
+    <div class="progress"><div class="progress-fill" style="width:100%"></div></div>
+    <div class="kicker" style="text-align:center;">Jouw financiële fitheid</div>
+    <div class="score-ring"><span class="score-num">${score}<span>/100</span></span></div>
+    <div class="band">${b.t}</div>
+    <div class="band-text">${b.d}</div>
+
+    <div class="number-box">
+      <div class="big">${eur(state.btw)} / maand</div>
+      <div class="lbl">Met ~${eur(state.omzet)} omzet per maand zet je al snel dit bedrag aan <strong>BTW</strong> opzij.<br>Jij doet nu: “${state.q1text}”</div>
+      <div class="note">Let op: de inkomstenbelasting komt hier nog bovenop. Hoeveel hangt af van je winst.</div>
+    </div>
+
+    <div class="dims">${dimsHtml}</div>
+
+    <div class="gate" id="gate">
+      <h3>Wil je je volledige rapport?</h3>
+      <p>Ik stuur je je persoonlijke rapport met alle tips en 3 concrete stappen die je vandaag kunt zetten.</p>
+      <input type="text" id="voornaam" placeholder="Je voornaam">
+      <input type="email" id="email" placeholder="Je e-mailadres">
+      <label class="optin"><input type="checkbox" id="optin" checked> Ja, stuur me mijn rapport en af en toe een waardevolle tip.</label>
+      <button class="btn" onclick="submitGate(${score})">Stuur mijn rapport →</button>
+    </div>`;
+}
+
+function submitGate(score){
+  // PROTOTYPE: hier POST naar n8n-webhook met de payload (zie spec §8)
+  const seg = segment(score);
+  let cta='';
+  if(seg==='self-serve') cta=`<a class="btn" href="https://mijnfinn.nl" target="_blank">Begin hier met MijnFinn →</a>`;
+  else if(seg==='gesprek') cta=`<p>Je bent groter dan de gemiddelde ZZP’er.</p><a class="btn" href="https://phuongdo.nl" target="_blank">Plan een gratis gesprek →</a>`;
+  else cta=`<a class="btn" href="https://mijnfinn.nl" target="_blank">Begin met MijnFinn →</a><br><br><a class="btn btn-ghost" href="https://phuongdo.nl" target="_blank">Of plan een gesprek</a>`;
+
+  card.innerHTML = `
+    <div class="cta-box">
+      <div class="checkmark">✉️</div>
+      <h2>Check je inbox</h2>
+      <p>Je rapport is onderweg. Alvast je volgende stap:</p>
+      ${cta}
+      <p class="footer-note" style="margin-top:24px;">Segment: <strong>${seg}</strong> · score ${score}/100 (alleen zichtbaar in prototype)</p>
+    </div>`;
+}
+
+render();
+</script>
+</body>
+</html>
